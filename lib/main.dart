@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter06/endereco.dart';
+import 'package:flutter06/local.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -18,11 +18,10 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-  final TextEditingController _cepController = TextEditingController();
-  var buscaRua = '';
-  var buscaBairro = '';
-  var buscaCidade = '';
-  var buscaEstado = '';
+  final TextEditingController _latController = TextEditingController();
+  final TextEditingController _longController = TextEditingController();
+  var temperatura = '';
+  var umidade = '';
 
   @override
   Widget build(BuildContext context) {
@@ -32,15 +31,17 @@ class _MainAppState extends State<MainApp> {
 	  child: Column(
 	    children: [
 	      TextField(
-		controller: _cepController,
-		decoration: const InputDecoration(labelText: 'Digite o CEP'),
+		      controller: _latController,
+		      decoration: const InputDecoration(labelText: 'Digite a latitude'),
 	      ),
-	      Text('Rua: $buscaRua'),
-        Text('Bairro: $buscaBairro'),
-        Text('Cidade: $buscaCidade'),
-        Text('Estado: $buscaEstado'),
+        TextField(
+          controller: _longController,
+          decoration: const InputDecoration(labelText: 'Digite a Longitude'),
+        ),
+	      Text('Temperatura: $temperatura°C'),
+        Text('Umidade: $umidade%'),
 	      TextButton(
-		onPressed: buscaCEP,
+		onPressed: buscaTemp,
 		child: const Text('Buscar'),
 	      ),
 	    ],
@@ -50,36 +51,30 @@ class _MainAppState extends State<MainApp> {
     );
   }
 
-void buscaCEP() async {
-  String cep = _cepController.text;
-  String url = 'https://viacep.com.br/ws/$cep/json/';
-
+void buscaTemp() async {
+  String latUser = _latController.text;
+  String longUser = _longController.text;
+  String url = 'https://api.open-meteo.com/v1/forecast?latitude=$latUser&longitude=$longUser&current=temperature_2m,relative_humidity_2m&timezone=America%2FSao_Paulo&forecast_days=1';
   final resposta = await http.get(Uri.parse(url));
 
   if (resposta.statusCode == 200) {
     final jsonDecodificado = jsonDecode(resposta.body);
-    if (jsonDecodificado['erro'] != null) {
-      // Caso o CEP não exista
-      _showAlertDialog('CEP não encontrado', 'Por favor, verifique o CEP e tente novamente.');
-    } else {
-      final endereco = Endereco.fromJson(jsonDecodificado);
+    // if (jsonDecodificado['erro'] != null) {
+    //   _showAlertDialog('Localização não encontrada', 'Por favor, verifique e tente novamente.');
+    // } else {
+      final local = Local.fromJson(jsonDecodificado);
 
       setState(() {
-        buscaRua = endereco.rua;
-        buscaBairro = endereco.bairro;
-        buscaCidade = endereco.cidade;
-        buscaEstado = endereco.estado;
+        temperatura = local.temp.toString();
+        umidade = local.umi.toString();
       });
-    }
+    // }
   } else {
     setState(() {
-      buscaRua = '';
-      buscaBairro = '';
-      buscaCidade = '';
-      buscaEstado = '';
+      temperatura = '';
     });
 
-    _showAlertDialog('Erro', 'Ocorreu um erro ao buscar o CEP.');
+    _showAlertDialog('Erro', 'Ocorreu um erro ao buscar o Local.');
   }
 }
 
